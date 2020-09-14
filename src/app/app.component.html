@@ -17,6 +17,7 @@
 </table>
 <hr/><button (click)="formdiv.hidden = false; openAdd()">Adicionar</button>
 <div id="formdiv" #formdiv class="modal" [hidden]="true">
+    <h4>{{ currentClient.key }}</h4>
     <form>
         <br/><input [(ngModel)]="currentClient.name" type="search" name="name" placeholder="Nome do cliente"/>
         <br/><input [(ngModel)]="currentClient.email" type="email" name="email" placeholder="E-mail"/>
