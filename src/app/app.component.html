@@ -1,1 +1,27 @@
-<div>Olá</div>
+<table>
+    <thead>
+        <th>Key</th>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Idade</th>
+        <th colspan="2">Ações</th>
+    </thead>
+    <tr *ngFor="let item of clients | async">
+        <td>{{ item. key}}</td>
+        <td>{{ item. name }}</td>
+        <td>{{ item. email }}</td>
+        <td>{{ item. age }}</td>
+        <td><button (click)="formdiv.hidden = false; edit(item.key)">Editar</button></td>
+        <td><button (click)="delete(item.key)">Apagar</button></td>
+    </tr>
+</table>
+<hr/><button (click)="formdiv.hidden = false; openAdd()">Adicionar</button>
+<div id="formdiv" #formdiv class="modal" [hidden]="true">
+    <form>
+        <br/><input [(ngModel)]="currentClient.name" type="search" name="name" placeholder="Nome do cliente"/>
+        <br/><input [(ngModel)]="currentClient.email" type="email" name="email" placeholder="E-mail"/>
+        <br/><input [(ngModel)]="currentClient.age" type="number" name="age" placeholder="Idade"/>
+        <p><button (click)="add()">Salvar</button>
+        <button (click)="formdiv.hidden = true">Cancelar</button></p>
+    </form>
+</div>

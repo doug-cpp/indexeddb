@@ -1,15 +1,102 @@
 import { Injectable } from '@angular/core';
 
+interface TableConfig {
+  name: string;
+  key: string;
+  indexes: {
+    name: string,
+    unique: boolean
+  }[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class IdbService {
 
-  private readonly dbname = 'TEST_DB4';
+  private readonly dbname = 'TEST_DB5';
+  private readonly tables: TableConfig[] = [
+    {
+      name: 'clients',
+      key: 'key',
+      indexes: [
+        {
+          name: 'name',
+          unique: false
+        },
+        {
+          name: 'email',
+          unique: true
+        },
+        {
+          name: 'cpfcnpj',
+          unique: true
+        },
+        {
+          name: 'date',
+          unique: false
+        }
+      ]
+    },
+    {
+      name: 'products',
+      key: 'key',
+      indexes: [
+        {
+          name: 'name',
+          unique: false
+        },
+        {
+          name: 'price',
+          unique: false
+        },
+        {
+          name: 'category',
+          unique: false
+        },
+        {
+          name: 'date',
+          unique: false
+        }
+      ]
+    }
+  ];
   private idbOpenRequest: IDBOpenDBRequest;
   private db: IDBDatabase;
 
   constructor() { }
+
+  private configTables(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      let countCompleteTables = 0;
+      this.tables.forEach(table => {
+        console.log('Nome e chave: ', table.name, table.key);
+        console.log('Índices: ', table.indexes);
+        // Cria um objectStore para conter a informação sobre nossos clientes. Nós vamos
+        // usar "ssn" como key path porque sabemos que é único;
+        const objectStore = this.db.createObjectStore(table.name, { keyPath: table.key });
+
+        table.indexes.forEach(index => {
+          objectStore.createIndex(index.name, index.name, { unique: index.unique });
+
+          // Usando transação oncomplete para afirmar que a criação do objectStore 
+          // é terminada antes de adicionar algum dado nele.
+          objectStore.transaction.oncomplete = _ => {
+            // Incrementa a quantidade de tabelas que terminaram de serem criadas:
+            countCompleteTables++;
+
+            // Se essa quantidade for a mesma do total de tabelas, então é porque
+            // todas já foram criadas:
+            if (this.tables.length === countCompleteTables) {
+              resolve(true);
+            }
+          };
+          // Quando ocorre algum erro ao criar alguma tabela, rejeita a operação:
+          objectStore.transaction.onerror = evt => reject(objectStore.transaction.error);
+        });
+      });
+    });
+  }
 
   syncDb(): Promise<string> {
 
@@ -18,46 +105,19 @@ export class IdbService {
 
       // Ao criar/atualizar com sucesso:
       this.idbOpenRequest.onsuccess = event => {
-        // console.log('request.onsuccess: ' + event.target.toString());
-
         this.db = this.idbOpenRequest.result;
         this.db.onversionchange = evt => resolve('version changed');
-        // this.db.oncomplete = evt => resolve('db completed');
-
         this.db.onerror = evt => console.error(evt.target);
-
         resolve('success open request');
       };
 
       // Ao ser atualizado:
       this.idbOpenRequest.onupgradeneeded = event => {
-        // resolve('request.onupgradeneeded: ' + this.idbOpenRequest.toString());
-
         this.db = this.idbOpenRequest.result;
 
-        // Create tables:
-        const tables = ['clients', 'products'];
+        console.log('upgrade needed');
+        this.configTables().then(_ => resolve('tables created'));
 
-        // Cria um objectStore para conter a informação sobre nossos clientes. Nós vamos
-        // usar "ssn" como key path porque sabemos que é único;
-        const objectStore = this.db.createObjectStore(tables[0], { keyPath: 'key' });
-
-        // Cria um índice para buscar clientes pelo nome. Podemos ter nomes
-        // duplicados, então não podemos usar como índice único.
-        objectStore.createIndex('name', 'name', { unique: false });
-
-        // Cria um índice para buscar clientes por email. Queremos ter certeza
-        // que não teremos 2 clientes com o mesmo e-mail;
-        // objectStore.createIndex("email", "email", { unique: true });
-
-        // Usando transação oncomplete para afirmar que a criação do objectStore 
-        // é terminada antes de adicionar algum dado nele.
-        objectStore.transaction.oncomplete = _ => resolve('tables created');
-
-        // End create tables.
-
-        this.db = this.idbOpenRequest.result;
-        // this.db.oncomplete = evt => console.log(this.db.toString());
         this.db.onerror = evt => console.error(evt.target);
       };
 
