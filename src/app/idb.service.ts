@@ -35,6 +35,10 @@ export class IdbService {
         {
           name: 'date',
           unique: false
+        },
+        {
+          name: 'age',
+          unique: false
         }
       ]
     },
@@ -101,7 +105,7 @@ export class IdbService {
   syncDb(): Promise<string> {
 
     return new Promise((resolve, reject) => {
-      this.idbOpenRequest = indexedDB.open(this.dbname, 1);
+      this.idbOpenRequest = indexedDB.open(this.dbname, 3);
 
       // Ao criar/atualizar com sucesso:
       this.idbOpenRequest.onsuccess = event => {
@@ -178,6 +182,34 @@ export class IdbService {
       list.onerror = evt => reject(`Table ${table} exists? ${list.error}`);
     });
   }
+
+  // ----------------------------------------------------------------------
+
+  searchList(table: string, field: string, like: string): Promise<{}[]> {
+    return new Promise((resolve, reject) => {
+
+      const result = [];
+      const list = this.db.transaction(table, 'readonly')
+        .objectStore(table).index(field)
+        .openCursor(
+          IDBKeyRange.bound(like, like + '\uffff'),
+          'prev');
+
+      list.onsuccess = evt => {
+        const cursor = list.result;
+        if (cursor) {
+          result.push(cursor.value);
+          cursor.continue();
+        } else if (result.length) {
+          result.sort((a, b) => a[field][1] - b[field][2]);
+        }
+        resolve(result);
+      };
+      list.onerror = evt => reject(list.error);
+    });
+  }
+
+  // ----------------------------------------------------------------------
 
   update(jsonData, table: string, key: string): Promise<boolean> {
     return new Promise((resolve, reject) => {

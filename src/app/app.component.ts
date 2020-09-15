@@ -18,17 +18,30 @@ export class AppComponent {
 
   clients: Promise<{}[]>;
   currentClient = { key: '', name: '', age: 0, email: ''};
+  likesearch = '';
 
   constructor(private idbs: IdbService) {
 
     // Colocar esse sync interno às operações?
     // As operações sequentes já estão funcionando sem invocar o sync!
-    this.idbs.syncDb().then( _ => this.clients = this.idbs.readList('clients'));
+    this.idbs.syncDb().then( _ => this.reset() );
 
     // NOT OK OUTSIDE!
     // this.idbs.readObject('clients', 'id003').then(o => console.log(o));
   }
 
+  // ---------------------------------------------------------------------------
+
+  searchByName(): void {
+    this.clients = this.idbs.searchList('clients', 'name', this.likesearch);
+  }
+
+  // ---------------------------------------------------------------------------
+  
+  reset(): void {
+    this.clients = this.idbs.readList('clients');
+  }
+  
   // ---------------------------------------------------------------------------
 
   openAdd(): void {
